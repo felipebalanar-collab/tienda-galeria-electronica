@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit2, Trash2, Package, Upload, Download, Search, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, Upload, Download, Search, Image as ImageIcon, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getProducts, addProduct, updateProduct, deleteProduct } from '../lib/db';
 import type { Product } from '../types';

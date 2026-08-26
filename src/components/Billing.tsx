@@ -291,7 +291,7 @@ export function Billing() {
             <div className="flex flex-col">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100 bg-white shadow-sm">
-                  <img src={settings?.logoUrl || '/gaelec web.png'} alt="Logo" className="w-full h-full object-cover" onError={(e) => {
+                  <img src={appSettings?.logoUrl || '/gaelec web.png'} alt="Logo" className="w-full h-full object-cover" onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&q=80&w=200';
                   }} />
                 </div>
