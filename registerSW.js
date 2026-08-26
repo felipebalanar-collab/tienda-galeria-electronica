@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/tienda-galeria-electronica/sw.js', { scope: '/tienda-galeria-electronica/' })})}
