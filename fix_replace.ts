@@ -1,0 +1,12 @@
+import fs from 'fs';
+let content = fs.readFileSync('src/components/Billing.tsx', 'utf8');
+
+// Fix the malformed string
+content = content.replace(
+  "{discountType === 'FIXED' ? '\n              <div className=\"flex items-center justify-between\">\n                <label className=\"text-sm font-medium text-slate-600\">Costo Envío</label>\n                <div className=\"relative w-24\">\n                  <span className=\"absolute left-3 top-1/2 -translate-y-1/2 text-slate-500\">$</span>\n                  <input\n                    type=\"number\"\n                    min=\"0\"\n                    step=\"0.5\"\n                    className=\"w-full bg-white border border-slate-200 rounded-lg pl-6 pr-2 py-1 text-right text-slate-900 focus:outline-none focus:border-emerald-500\"\n                    value={shippingCost}",
+  "{discountType === 'FIXED' ? '$' : '%'}\n                    </span>\n                    <input\n                      type=\"number\"\n                      min=\"0\"\n                      step={discountType === 'PERCENTAGE' ? \"1\" : \"0.5\"}\n                      className=\"w-full bg-white border border-slate-200 rounded-lg pl-7 pr-2 py-1 text-right text-slate-900 focus:outline-none focus:border-emerald-500\"\n                      value={discountValue}\n                      onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)}\n                    />\n                  </div>\n                </div>\n              </div>\n              <div className=\"flex items-center justify-between\">\n                <label className=\"text-sm font-medium text-slate-600\">Costo Envío</label>\n                <div className=\"relative w-24\">\n                  <span className=\"absolute left-3 top-1/2 -translate-y-1/2 text-slate-500\">$</span>\n                  <input\n                    type=\"number\"\n                    min=\"0\"\n                    step=\"0.5\"\n                    className=\"w-full bg-white border border-slate-200 rounded-lg pl-6 pr-2 py-1 text-right text-slate-900 focus:outline-none focus:border-emerald-500\"\n                    value={shippingCost}"
+);
+
+// We must also remove the trailing garbage from the old replace that probably got appended.
+// Wait, the previous replace put `$'` (which evaluated to everything after) into the file, which means we have a duplicated trailing part.
+// Let's just restore from a clean state and do it properly, or just use git checkout.
