@@ -1,9 +1,10 @@
+import { getSettings, type AppSettings } from './lib/db';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, Users, FileText, Store, BarChart3, Menu, X } from 'lucide-react';
 import { Inventory } from './components/Inventory';
 import { Customers } from './components/Customers';
@@ -17,6 +18,11 @@ type View = 'inventory' | 'customers' | 'billing' | 'reports' | 'settings';
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('inventory');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+
+  useEffect(() => {
+    getSettings().then(setSettings).catch(console.error);
+  }, []);
 
   const handleNavClick = (view: View) => {
     setCurrentView(view);
@@ -29,7 +35,7 @@ export default function App() {
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-40 flex items-center justify-between px-4 print:hidden">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-emerald-500/20">
-            <img src="/gaelec web.png" alt="Logo" className="h-full w-full object-cover" onError={(e) => {
+            <img src={settings?.logoUrl || '/gaelec web.png'} alt="Logo" className="h-full w-full object-cover" onError={(e) => {
               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&q=80&w=200';
             }}/>
           </div>
@@ -58,7 +64,7 @@ export default function App() {
           </button>
           <div className="h-24 w-24 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-emerald-500/20 shadow-lg relative group">
             {/* Logo from the chat will be placed here or use Store as fallback if missing */}
-            <img src="/gaelec web.png" alt="Logo" className="h-full w-full object-cover" onError={(e) => {
+            <img src={settings?.logoUrl || '/gaelec web.png'} alt="Logo" className="h-full w-full object-cover" onError={(e) => {
               (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&q=80&w=200';
             }}/>
             <Store className="text-emerald-500 hidden" size={40} />

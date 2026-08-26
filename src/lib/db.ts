@@ -138,6 +138,7 @@ export async function deleteInvoice(invoiceId: string) {
 
 
 export interface AppSettings {
+  logoUrl?: string;
   companyName: string;
   email: string;
   phone: string;
@@ -155,7 +156,8 @@ export async function getSettings(): Promise<AppSettings> {
       phone: '+593 99 999 9999',
       website: 'www.galeriaelectronica.com',
       facebook: 'Galería Electrónica',
-      instagram: '@galeria_electronica'
+      instagram: '@galeria_electronica',
+      logoUrl: '/gaelec web.png'
     };
   }
   return snap.docs[0].data() as AppSettings;

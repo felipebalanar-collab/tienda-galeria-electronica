@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Store, Mail, Phone, Globe, Instagram, Facebook } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Settings as SettingsIcon, Save, Store, Mail, Phone, Globe, Instagram, Facebook, Image as ImageIcon } from 'lucide-react';
 import { getSettings, saveSettings, type AppSettings } from '../lib/db';
 
 export function Settings() {
@@ -9,11 +9,26 @@ export function Settings() {
     phone: '',
     website: '',
     facebook: '',
-    instagram: ''
+    instagram: '',
+    logoUrl: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings({ ...settings, logoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   useEffect(() => {
     async function load() {
@@ -77,6 +92,41 @@ export function Settings() {
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-6">
+            <h3 className="text-sm font-medium text-slate-900 mb-4 flex items-center gap-2">
+              <ImageIcon size={18} className="text-emerald-500" /> Logo de la Tienda
+            </h3>
+            <div className="flex items-center gap-6">
+              <div className="h-24 w-24 bg-white rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
+                {settings.logoUrl ? (
+                  <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Store className="text-slate-300" size={32} />
+                )}
+              </div>
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={imageInputRef}
+                  onChange={handleImageUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm"
+                >
+                  Subir nuevo logo
+                </button>
+                <p className="text-xs text-slate-500 mt-2">
+                  Formatos recomendados: PNG o JPG. Tamaño ideal: 200x200px.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
