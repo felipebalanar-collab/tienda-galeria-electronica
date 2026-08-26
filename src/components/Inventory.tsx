@@ -12,6 +12,7 @@ export function Inventory() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -383,35 +384,73 @@ export function Inventory() {
             </form>
           </div>
         </div>
+
+      )}
+      
+      {previewProduct && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setPreviewProduct(null)}
+              className="absolute top-4 right-4 z-10 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 transition-colors backdrop-blur-md"
+            >
+              <X size={24} />
+            </button>
+            <div className="w-full h-80 sm:h-96 bg-slate-100 relative">
+              <img 
+                src={previewProduct.imageUrl} 
+                alt={previewProduct.name} 
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="p-8">
+              <div className="flex justify-between items-start gap-4 mb-4">
+                <h2 className="text-2xl font-bold text-slate-900 leading-tight">
+                  {previewProduct.name}
+                </h2>
+                <div className="text-2xl font-bold text-emerald-600 shrink-0">
+                  ${previewProduct.price.toFixed(2)}
+                </div>
+              </div>
+              <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                {previewProduct.description || 'Sin descripción detallada.'}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredProducts.map(product => (
-          <div key={product.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors">
-            <div className="h-48 w-full bg-white relative">
+          <div key={product.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors flex flex-col group">
+            <div 
+              className="h-48 w-full bg-white relative cursor-pointer"
+              onClick={() => setPreviewProduct(product)}
+            >
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
               />
               <div className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full border border-slate-200 text-sm font-medium text-emerald-600">
-                P.V.P: ${product.price.toFixed(2)}
-              </div>
-              <div className="absolute bottom-3 left-3 bg-white/80 backdrop-blur-sm px-2 py-1 rounded border border-slate-200 text-xs font-medium text-slate-600">
-                Costo: ${(product.cost || 0).toFixed(2)}
+                P.V.P: $${product.price.toFixed(2)}
               </div>
             </div>
-            <div className="p-5">
-              <h3 className="font-semibold text-slate-900 text-lg mb-1 truncate">{product.name}</h3>
+            <div className="p-5 flex flex-col flex-1">
+              <h3 
+                className="font-semibold text-slate-900 text-lg mb-1 truncate cursor-pointer hover:text-emerald-600"
+                onClick={() => setPreviewProduct(product)}
+              >
+                {product.name}
+              </h3>
               <p className="text-slate-600 text-sm mb-4 line-clamp-2">{product.description || 'Sin descripción'}</p>
               
               <div className="flex items-center justify-between mt-auto">
-                <span className={cn(
-                  "text-sm font-medium px-2.5 py-1 rounded-full",
+                <span className={`text-sm font-medium px-2.5 py-1 rounded-full ${
                   product.stock > 10 ? "bg-emerald-50 text-emerald-600" : 
                   product.stock > 0 ? "bg-amber-50 text-amber-700" : 
                   "bg-red-50 text-red-600"
-                )}>
+                }`}>
                   Stock: {product.stock}
                 </span>
                 <div className="flex gap-2">
