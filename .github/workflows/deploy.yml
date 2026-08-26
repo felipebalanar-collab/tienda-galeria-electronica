@@ -11,18 +11,23 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       
-      # 1. Cambia la configuración para GitHub Pages
+      # Modifica el Vite Config para GitHub Pages
       - name: Update Vite Config for GitHub Pages
         run: |
           sed -i "s/plugins: \[react(), tailwindcss(), VitePWA/base: '\/${{ github.event.repository.name }}\/',\n    plugins: \[react(), tailwindcss(), VitePWA/" vite.config.ts
           
-      - name: Install Dependencies
-        run: npm install
-        
+      # Instalación limpia para evitar el error de npm/Tailwind
+      - name: Clean Install
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install --legacy-peer-deps
+          npm install @rollup/rollup-linux-x64-gnu --no-save
+          
       - name: Build Application
         run: npm run build
         
