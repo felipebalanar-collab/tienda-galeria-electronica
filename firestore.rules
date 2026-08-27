@@ -1,18 +1,7 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read and write access to all collections for this prototype
-    match /products/{document=**} {
-      allow read, write: if true;
-    }
-    match /customers/{document=**} {
-      allow read, write: if true;
-    }
-    match /invoices/{document=**} {
-      allow read, write: if true;
-    }
-    match /settings/{document=**} {
+    match /{document=**} {
       allow read, write: if true;
     }
   }
