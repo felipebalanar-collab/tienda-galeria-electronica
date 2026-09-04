@@ -213,6 +213,7 @@ export function Billing() {
         );
       }
 
+      // Create base invoice data
       const invoiceData: Omit<Invoice, 'id' | 'createdAt'> = {
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
@@ -226,18 +227,25 @@ export function Billing() {
         iva,
         taxName,
         taxPercentage,
-        secondaryTaxAmount,
-        secondaryTaxName: secondaryTaxEnabled ? secondaryTaxName : undefined,
-        secondaryTaxPercentage: secondaryTaxEnabled ? secondaryTaxPercentage : undefined,
         shipping: shippingCost,
         total,
         profit,
         type: invoiceType,
-        status: 'ACTIVE',
-        sriStatus: appSettings?.sriEnabled && invoiceType === 'INVOICE' ? 'NO_ENVIADO' : undefined,
-        sriAccessKey,
-        sriSecuencial
+        status: 'ACTIVE'
       };
+
+      // Add optional fields only if they exist and are defined
+      if (secondaryTaxEnabled && secondaryTaxAmount > 0) {
+        invoiceData.secondaryTaxAmount = secondaryTaxAmount;
+        invoiceData.secondaryTaxName = secondaryTaxName;
+        invoiceData.secondaryTaxPercentage = secondaryTaxPercentage;
+      }
+
+      if (appSettings?.sriEnabled && invoiceType === 'INVOICE') {
+        invoiceData.sriStatus = 'NO_ENVIADO';
+      }
+      if (sriAccessKey) invoiceData.sriAccessKey = sriAccessKey;
+      if (sriSecuencial) invoiceData.sriSecuencial = sriSecuencial;
 
       const newId = await createInvoice(invoiceData);
       
