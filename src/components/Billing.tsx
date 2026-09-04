@@ -213,7 +213,7 @@ export function Billing() {
         );
       }
 
-    // Create base invoice data
+      // Create base invoice data
       const invoiceData: any = {
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
@@ -247,20 +247,23 @@ export function Billing() {
       if (sriAccessKey) invoiceData.sriAccessKey = sriAccessKey;
       if (sriSecuencial) invoiceData.sriSecuencial = sriSecuencial;
 
-      // ELIMINADOR DE UNDEFINED (Esto soluciona el error)
+      // Clean all strictly undefined keys completely from the object before passing to Firebase
       Object.keys(invoiceData).forEach(key => {
         if (invoiceData[key] === undefined) {
           delete invoiceData[key];
         }
       });
 
-      const newId = await createInvoice(invoiceData);
+      const newId = await createInvoice(invoiceData as Omit<Invoice, 'id' | 'createdAt'>);
       
       const created: Invoice = {
         ...invoiceData,
         id: newId,
         createdAt: Date.now()
       };
+
+      setPrintingInvoice(created);
+
       // Reset cart
       setCart([]);
       setSelectedCustomer(null);
@@ -565,7 +568,7 @@ export function Billing() {
 
           {/* Totals Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start pt-4 border-t-2 border-slate-300 gap-4">
-            <div className="text-xs text-slate-500 max-w-xs space-y-1">
+            <div className="text-xs text-slate-500 max-w-xs space-y-2">
               {isProforma ? (
                 <p className="italic">
                   * Cotización válida por 15 días calendario. Sujeta a disponibilidad de stock.
@@ -575,6 +578,20 @@ export function Billing() {
                   ¡Gracias por su compra en Galería Electrónica!
                 </p>
               )}
+              
+              {/* Social Media Footer */}
+              <div className="pt-2 mt-2 border-t border-slate-200">
+                <p className="font-semibold text-slate-700 mb-1">Encuéntranos en:</p>
+                {appSettings?.facebook && (
+                  <p>Facebook: <span className="text-slate-900 font-medium">{appSettings.facebook}</span></p>
+                )}
+                {appSettings?.instagram && (
+                  <p>Instagram: <span className="text-slate-900 font-medium">{appSettings.instagram}</span></p>
+                )}
+                {appSettings?.website && (
+                  <p>Web: <span className="text-slate-900 font-medium">{appSettings.website}</span></p>
+                )}
+              </div>
             </div>
 
             <div className="w-full sm:w-72 bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-xl text-xs sm:text-sm space-y-1.5">
