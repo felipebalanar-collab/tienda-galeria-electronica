@@ -105,7 +105,8 @@ export async function getInvoices(): Promise<Invoice[]> {
 
 export async function createInvoice(invoice: Omit<Invoice, 'id' | 'createdAt'>) {
   return await runTransaction(db, async (transaction) => {
-    // Only check and deduct stock for INVOICE, not PROFORMA
+    // Step 1: Perform all reads first (Firestore rule: all reads must come before writes)
+    const productsData = [];
     if (invoice.type === 'INVOICE') {
       for (const item of invoice.items) {
         const productRef = doc(db, 'products', item.productId);
@@ -113,11 +114,22 @@ export async function createInvoice(invoice: Omit<Invoice, 'id' | 'createdAt'>) 
         if (!productDoc.exists()) {
           throw new Error(`El producto con ID ${item.productId} no existe`);
         }
-        const newStock = productDoc.data().stock - item.quantity;
+        productsData.push({
+          ref: productRef,
+          data: productDoc.data(),
+          quantityToDeduct: item.quantity
+        });
+      }
+    }
+
+    // Step 2: Perform all writes
+    if (invoice.type === 'INVOICE') {
+      for (const product of productsData) {
+        const newStock = product.data.stock - product.quantityToDeduct;
         if (newStock < 0) {
-          throw new Error(`Stock insuficiente para ${productDoc.data().name}`);
+          throw new Error(`Stock insuficiente para ${product.data.name}`);
         }
-        transaction.update(productRef, { stock: newStock });
+        transaction.update(product.ref, { stock: newStock });
       }
     }
 
@@ -145,15 +157,26 @@ export async function cancelInvoice(invoiceId: string) {
       return;
     }
     
-    // Restore stock if it was an invoice
+    // Step 1: Perform all reads first
+    const productsData = [];
     if (invoiceData.type === 'INVOICE') {
       for (const item of invoiceData.items) {
         const productRef = doc(db, 'products', item.productId);
         const productDoc = await transaction.get(productRef);
         if (productDoc.exists()) {
-          const currentStock = productDoc.data().stock || 0;
-          transaction.update(productRef, { stock: currentStock + item.quantity });
+          productsData.push({
+            ref: productRef,
+            currentStock: productDoc.data().stock || 0,
+            quantityToRestore: item.quantity
+          });
         }
+      }
+    }
+    
+    // Step 2: Perform all writes
+    if (invoiceData.type === 'INVOICE') {
+      for (const product of productsData) {
+        transaction.update(product.ref, { stock: product.currentStock + product.quantityToRestore });
       }
     }
     
@@ -256,4 +279,3 @@ export async function deleteAuthorizedUser(id: string) {
   const ref = doc(db, 'system_users', id);
   return await deleteDoc(ref);
 }
-
