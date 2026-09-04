@@ -213,14 +213,14 @@ export function Billing() {
         );
       }
 
-      // Create base invoice data
-      const invoiceData: Omit<Invoice, 'id' | 'createdAt'> = {
+    // Create base invoice data
+      const invoiceData: any = {
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
-        customerIdentification: selectedCustomer.identification,
-        customerEmail: selectedCustomer.email,
-        customerPhone: selectedCustomer.phone,
-        customerAddress: selectedCustomer.address,
+        customerIdentification: selectedCustomer.identification || '',
+        customerEmail: selectedCustomer.email || '',
+        customerPhone: selectedCustomer.phone || '',
+        customerAddress: selectedCustomer.address || '',
         items: cart,
         subtotal,
         discount: calculatedDiscount,
@@ -237,8 +237,8 @@ export function Billing() {
       // Add optional fields only if they exist and are defined
       if (secondaryTaxEnabled && secondaryTaxAmount > 0) {
         invoiceData.secondaryTaxAmount = secondaryTaxAmount;
-        invoiceData.secondaryTaxName = secondaryTaxName;
-        invoiceData.secondaryTaxPercentage = secondaryTaxPercentage;
+        invoiceData.secondaryTaxName = secondaryTaxName || 'Tasa / Impuesto Adicional';
+        invoiceData.secondaryTaxPercentage = secondaryTaxPercentage || 0;
       }
 
       if (appSettings?.sriEnabled && invoiceType === 'INVOICE') {
@@ -247,6 +247,13 @@ export function Billing() {
       if (sriAccessKey) invoiceData.sriAccessKey = sriAccessKey;
       if (sriSecuencial) invoiceData.sriSecuencial = sriSecuencial;
 
+      // ELIMINADOR DE UNDEFINED (Esto soluciona el error)
+      Object.keys(invoiceData).forEach(key => {
+        if (invoiceData[key] === undefined) {
+          delete invoiceData[key];
+        }
+      });
+
       const newId = await createInvoice(invoiceData);
       
       const created: Invoice = {
@@ -254,9 +261,6 @@ export function Billing() {
         id: newId,
         createdAt: Date.now()
       };
-
-      setPrintingInvoice(created);
-
       // Reset cart
       setCart([]);
       setSelectedCustomer(null);
