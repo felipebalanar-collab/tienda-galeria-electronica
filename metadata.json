@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Galería Electrónica - Facturación e Inventario",
+  "description": "Sistema de gestión de inventario para componentes electrónicos, control de stock, facturación y balance financiero con discriminación de IVA y costos.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
