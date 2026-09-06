@@ -10,9 +10,9 @@ import {
   runTransaction
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Product, Customer, Invoice, AppSettings, SystemUser } from '../types';
+import type { Product, Customer, Invoice, AppSettings, SystemUser, StockMovement } from '../types';
 
-export type { AppSettings, SystemUser };
+export type { AppSettings, SystemUser, StockMovement };
 
 // Products
 export async function getProducts(): Promise<Product[]> {
@@ -30,10 +30,34 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function addProduct(product: Omit<Product, 'id' | 'createdAt'>) {
-  return await addDoc(collection(db, 'products'), {
+  const initialStock = product.initialStock !== undefined ? product.initialStock : (product.stock || 0);
+  const prodRef = await addDoc(collection(db, 'products'), {
     ...product,
+    initialStock,
+    totalSold: product.totalSold || 0,
     createdAt: Date.now()
   });
+
+  // Record initial stock entry in movements
+  if (initialStock > 0) {
+    try {
+      await addDoc(collection(db, 'stock_movements'), {
+        productId: prodRef.id,
+        productName: product.name,
+        type: 'IN',
+        quantity: initialStock,
+        previousStock: 0,
+        newStock: initialStock,
+        unitCost: product.cost || 0,
+        reason: 'Inventario inicial registrado al crear producto',
+        createdAt: Date.now()
+      });
+    } catch (err) {
+      console.warn('Could not record initial movement:', err);
+    }
+  }
+
+  return prodRef;
 }
 
 export async function updateProduct(id: string, product: Partial<Product>) {
@@ -44,6 +68,64 @@ export async function updateProduct(id: string, product: Partial<Product>) {
 export async function deleteProduct(id: string) {
   const ref = doc(db, 'products', id);
   return await deleteDoc(ref);
+}
+
+// Stock Movements & Restock
+export async function increaseProductStock(
+  productId: string,
+  quantityToAdd: number,
+  reason: string = 'Reabastecimiento de componentes',
+  unitCost?: number
+) {
+  return await runTransaction(db, async (transaction) => {
+    const productRef = doc(db, 'products', productId);
+    const productDoc = await transaction.get(productRef);
+    if (!productDoc.exists()) {
+      throw new Error('El producto no existe');
+    }
+
+    const data = productDoc.data() as Product;
+    const previousStock = data.stock || 0;
+    const newStock = previousStock + quantityToAdd;
+
+    const updatePayload: Partial<Product> = {
+      stock: newStock
+    };
+    if (unitCost !== undefined && unitCost > 0) {
+      updatePayload.cost = unitCost;
+    }
+
+    transaction.update(productRef, updatePayload);
+
+    const movementRef = doc(collection(db, 'stock_movements'));
+    transaction.set(movementRef, {
+      productId,
+      productName: data.name,
+      type: 'IN',
+      quantity: quantityToAdd,
+      previousStock,
+      newStock,
+      unitCost: unitCost !== undefined && unitCost > 0 ? unitCost : (data.cost || 0),
+      reason,
+      createdAt: Date.now()
+    });
+
+    return { previousStock, newStock };
+  });
+}
+
+export async function getStockMovements(productId?: string): Promise<StockMovement[]> {
+  try {
+    const snap = await getDocs(collection(db, 'stock_movements'));
+    let movements = snap.docs.map(d => ({ id: d.id, ...d.data() } as StockMovement));
+    if (productId) {
+      movements = movements.filter(m => m.productId === productId);
+    }
+    return movements.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } catch (error) {
+    console.error('Error fetching stock movements:', error);
+    return [];
+  }
 }
 
 // Customers
@@ -123,17 +205,36 @@ export async function createInvoice(invoice: Omit<Invoice, 'id' | 'createdAt'>) 
     }
 
     // Step 2: Perform all writes
+    const newInvoiceRef = doc(collection(db, 'invoices'));
+
     if (invoice.type === 'INVOICE') {
       for (const product of productsData) {
         const newStock = product.data.stock - product.quantityToDeduct;
         if (newStock < 0) {
           throw new Error(`Stock insuficiente para ${product.data.name}`);
         }
-        transaction.update(product.ref, { stock: newStock });
+        const updatedTotalSold = (product.data.totalSold || 0) + product.quantityToDeduct;
+        transaction.update(product.ref, { 
+          stock: newStock,
+          totalSold: updatedTotalSold
+        });
+
+        // Register movement for sale
+        const movementRef = doc(collection(db, 'stock_movements'));
+        transaction.set(movementRef, {
+          productId: product.ref.id,
+          productName: product.data.name,
+          type: 'OUT',
+          quantity: product.quantityToDeduct,
+          previousStock: product.data.stock,
+          newStock: newStock,
+          reason: `Venta Factura #${newInvoiceRef.id.slice(0, 8)}`,
+          referenceId: newInvoiceRef.id,
+          createdAt: Date.now()
+        });
       }
     }
 
-    const newInvoiceRef = doc(collection(db, 'invoices'));
     transaction.set(newInvoiceRef, {
       ...invoice,
       status: 'ACTIVE',
@@ -166,7 +267,9 @@ export async function cancelInvoice(invoiceId: string) {
         if (productDoc.exists()) {
           productsData.push({
             ref: productRef,
+            name: productDoc.data().name || item.name || 'Producto',
             currentStock: productDoc.data().stock || 0,
+            totalSold: productDoc.data().totalSold || 0,
             quantityToRestore: item.quantity
           });
         }
@@ -176,7 +279,24 @@ export async function cancelInvoice(invoiceId: string) {
     // Step 2: Perform all writes
     if (invoiceData.type === 'INVOICE') {
       for (const product of productsData) {
-        transaction.update(product.ref, { stock: product.currentStock + product.quantityToRestore });
+        const restoredStock = product.currentStock + product.quantityToRestore;
+        transaction.update(product.ref, { 
+          stock: restoredStock,
+          totalSold: Math.max(0, product.totalSold - product.quantityToRestore)
+        });
+
+        const movementRef = doc(collection(db, 'stock_movements'));
+        transaction.set(movementRef, {
+          productId: product.ref.id,
+          productName: product.name,
+          type: 'IN',
+          quantity: product.quantityToRestore,
+          previousStock: product.currentStock,
+          newStock: restoredStock,
+          reason: `Anulación Factura #${invoiceId.slice(0, 8)}`,
+          referenceId: invoiceId,
+          createdAt: Date.now()
+        });
       }
     }
     
@@ -279,3 +399,4 @@ export async function deleteAuthorizedUser(id: string) {
   const ref = doc(db, 'system_users', id);
   return await deleteDoc(ref);
 }
+

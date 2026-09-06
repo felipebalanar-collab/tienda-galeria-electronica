@@ -59,6 +59,7 @@ export function Billing() {
 
   // Search & filter states
   const [productSearch, setProductSearch] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>('ALL');
   const [customerSearch, setCustomerSearch] = useState('');
   const [historySearch, setHistorySearch] = useState('');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'INVOICE' | 'PROFORMA' | 'CANCELLED'>('ALL');
@@ -360,10 +361,15 @@ export function Billing() {
     URL.revokeObjectURL(url);
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(productSearch.toLowerCase()))
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(productSearch.toLowerCase())) ||
+      (p.category && p.category.toLowerCase().includes(productSearch.toLowerCase()));
+    const matchesCategory = productCategoryFilter === 'ALL' || p.category === productCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
 
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
@@ -850,6 +856,39 @@ export function Billing() {
                   />
                 </div>
 
+                {/* Electronic component category filters */}
+                {productCategories.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setProductCategoryFilter('ALL')}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap transition-colors border",
+                        productCategoryFilter === 'ALL'
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                      )}
+                    >
+                      Todos
+                    </button>
+                    {productCategories.map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setProductCategoryFilter(cat)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap transition-colors border",
+                          productCategoryFilter === cat
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
                   {filteredProducts.map(product => {
                     const inCart = cart.find(i => i.productId === product.id);
@@ -872,7 +911,14 @@ export function Billing() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">{product.name}</h4>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">{product.name}</h4>
+                              {product.category && (
+                                <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium truncate max-w-[120px]">
+                                  {product.category}
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 text-xs mt-0.5">
                               <span className="font-bold text-emerald-600">${product.price.toFixed(2)}</span>
                               <span className={cn(

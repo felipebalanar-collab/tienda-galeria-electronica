@@ -2,12 +2,47 @@ export interface Product {
   id: string;
   name: string;
   description: string;
+  category?: string; // Clasificación del componente electrónico
   price: number;
   cost: number;
   stock: number;
+  initialStock?: number; // Inventario inicial registrado
+  totalSold?: number; // Total acumulado de unidades vendidas
   imageUrl: string;
   createdAt: number;
 }
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  type: 'IN' | 'OUT' | 'ADJUST'; // IN: Entrada/Reabastecimiento, OUT: Salida/Venta, ADJUST: Ajuste manual
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  unitCost?: number;
+  reason?: string; // e.g. "Compra de lote", "Reabastecimiento", "Ajuste por inventario físico", "Factura de venta"
+  referenceId?: string; // e.g. ID de factura si fue venta
+  createdAt: number;
+  createdBy?: string;
+}
+
+export const ELECTRONIC_CATEGORIES = [
+  'Resistencias y Potenciómetros',
+  'Condensadores y Capacitores',
+  'Diodos, LEDs y Optoelectrónica',
+  'Transistores y MOSFETs',
+  'Circuitos Integrados (ICs)',
+  'Microcontroladores y Placas (Arduino, ESP32, etc.)',
+  'Sensores y Transductores',
+  'Módulos y Shields',
+  'Conectores, Cables y Borneras',
+  'Pulsadores, Switches y Relés',
+  'Fuentes, Baterías y Reguladores',
+  'Herramientas, Soldadura y Protoboards',
+  'Robótica, Motores y Servomotores',
+  'Varios / Otros'
+];
 
 export interface Customer {
   id: string;
